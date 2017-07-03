@@ -1,7 +1,3 @@
-library(foreach)
-library(doParallel)
-cl<-makeCluster(3)
-registerDoParallel(cl)
 
 tabuTSP<-function(size = 10, iters = 100, objFunc = NULL, config = NULL,
                   neigh = size^2, listSize = 9, nRestarts = 10, repeatAll = 1,
@@ -26,15 +22,7 @@ tabuTSP<-function(size = 10, iters = 100, objFunc = NULL, config = NULL,
     stop("A evaluation function must be provided. See the objFunc parameter.")
   }
   if (is.null(config)) {
-    initConfigs<-matrix(0,size,size)
-    values<-numeric(size)
-    for(i in 1:size){
-      tConfig<-rbind(getRandom(size))
-      initConfigs[i,]<-tConfig
-      values[i]<-objFunc(tConfig,dist)
-    }
-    config<-initConfigs[which.max(values),]
-    
+    config<-getGreedy(size,dist)
   }
   else if (size != length(config)) {
     stop("Length of the starting configuration != size")
@@ -63,7 +51,13 @@ tabuTSP<-function(size = 10, iters = 100, objFunc = NULL, config = NULL,
         neighboursEUtility <- matrix(0, 1, size^2) 
         configTemp <- t(matrix(config, size, neigh)) 
         Neighbours <- c(1:(size^2))
-        configTemp<-findConf(config)
+        #print(configTemp)
+        if(size>=60){
+          configTemp<-findConfP(config)
+        }else{
+          configTemp<-findConf(config)
+        }
+        #print(configTemp)
         neighboursEUtility[Neighbours] <- apply(configTemp, 1,objFunc,d=dist)
         
         maxNontaboo <- max(neighboursEUtility[tabuList == 0]) 
@@ -170,7 +164,27 @@ evaluate<-function(v,d){
   return(-1*pathLength)
 }
 
-findConf<-function(v){
+findConf<-function(v){ #non-parallel neighbour finding
+  m<-matrix(v,1,length(v))
+  
+  for(i in 1:length(v)){
+    for(j in 1:length(v)){
+      m<-rbind(m,swap(v,i,j))
+    }
+  }
+  return(m[2:nrow(m),])
+}
+findConfP<-function(v){ #parallel neighbour finding
+  if(!"foreach" %in% rownames(installed.packages())){
+    install.packages("foreach")
+  }
+  if("doParallel" %in% rownames(installed.packages())){
+    install.packages("doParallel")
+  }
+  nc<-detectCores()-1
+  cl<-makeCluster(nc)
+  library(doParallel)
+  library(foreach)
   m<-matrix(v,1,length(v))
   avec<-c(1:length(v))
   bvec<-c(1:length(v))
@@ -179,11 +193,12 @@ findConf<-function(v){
     foreach(a=avec, .combine='rbind', .export='Pswap') %dopar%{
       Pswap(m,a,b)
     }
+  stopCluster(cl)
   return(mt)
 }
 
 
-Pswap<-function(v,X1,X2){ 
+swap<-function(v,X1,X2){ 
   originalV<-v
   if(X1==X2){
     return(v)
@@ -209,7 +224,6 @@ Pswap<-function(v,X1,X2){
   }
   return(v)
 }
-
 
 tl<-function(b){ 
   v<-numeric(length(b)^2)
@@ -290,6 +304,37 @@ getPath<-function(size,resM){
   return(rbind(cycle))
 }
 
+getGreedy<-function(size,d){
+  diag(d)<-diag(d)+.Machine$integer.max
+  v<-numeric(size)
+  track<-1
+  exc<-numeric(size)
+  exc[1]<-1
+  for(i in 1:size){
+    exc<-c(track,exc)
+    if(i==size){
+      v[track]<-1
+    }else{
+      if(length(d[track,-exc])==1){ #it was being forced to a vector when there was length 1 and it was causing issues with "names()"
+        #cat("track: ",track,"\n")
+        #cat("d[track,-exc]",d[track,-exc],"\n")
+        #cat("exc: ",exc,"\n")
+        #cat("length: ",length(d[track,-exc])==1,"\n")
+        #cat("which: ",which(d[track,]==d[track,-exc]),"\n")
+        #v[track]<-which(d[track,]==d[track,-exc])
+        vect2<-which(d[track,]==d[track,-exc]) #PROBLEM this can produce more than 1 number when there is 2 numbers exactly the same in the same row
+        pos<-setdiff(vect2,exc) #This takes the differene between the 2 vectors i.e removes the excluded towns from vect2 (if an excluded town has exactly the same distance it can be included)
+        v[track]<-pos
+      }else{
+        v[track]<-as.integer(names(which.min(d[track,-exc])))
+      }
+      track<-v[track]
+      #cat("V:",v,"\n")
+    }
+  }
+  return(v)
+}
+
 
 summ<-function (object, verbose = FALSE, ...)
 {
@@ -329,13 +374,13 @@ summ<-function (object, verbose = FALSE, ...)
 }
 
 
-Xs<-sample(1:100,70,replace=T) 
-Ys<-sample(1:100,70,replace=T) 
+Xs<-sample(1:100,30,replace=T) 
+Ys<-sample(1:100,30,replace=T) 
 Ps<-cbind(Xs,Ys) 
 d<-as.matrix(dist(Ps))
 
 time<-proc.time()
-res<-tabuTSP(size=70,iters=25,objFunc=evaluate,listSize=30,nRestarts=10,repeatAll=2,dist=d)
+res<-tabuTSP(size=30,iters=10,objFunc=evaluate,listSize=20,nRestarts=10,repeatAll=1,dist=d)
 summ(res, verbose=T) #Worked for 125 towns, took approx 90 minutes
 proc.time()-time
 

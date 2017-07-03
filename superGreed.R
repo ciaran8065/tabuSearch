@@ -325,12 +325,6 @@ getGreedy<-function(size,d,start){
       v[track]<-start
     }else{
       if(length(d[track,-exc])==1){ #it was being forced to a vector when there was length 1 and it was causing issues with "names()"
-        #cat("track: ",track,"\n")
-        #cat("d[track,-exc]",d[track,-exc],"\n")
-        #cat("exc: ",exc,"\n")
-        #cat("length: ",length(d[track,-exc])==1,"\n")
-        #cat("which: ",which(d[track,]==d[track,-exc]),"\n")
-        #v[track]<-which(d[track,]==d[track,-exc])
         vect2<-which(d[track,]==d[track,-exc]) #PROBLEM this can produce more than 1 number when there is 2 numbers exactly the same in the same row
         pos<-setdiff(vect2,exc) #This takes the differene between the 2 vectors i.e removes the excluded towns from vect2 (if an excluded town has exactly the same distance it can be included)
         v[track]<-pos
@@ -338,7 +332,6 @@ getGreedy<-function(size,d,start){
         v[track]<-as.integer(names(which.min(d[track,-exc])))
       }
       track<-v[track]
-      #cat("V:",v,"\n")
     }
   }
   return(v)
@@ -387,10 +380,15 @@ Ys<-sample(1:100,30,replace=T)
 Ps<-cbind(Xs,Ys) 
 d<-as.matrix(dist(Ps))
 
-time<-proc.time()
-res<-tabuTSP(size=30,iters=10,objFunc=evaluate,listSize=20,nRestarts=10,repeatAll=1,dist=d)
+m<-as.matrix(eurodist)
+rownames(m)<-c(1:21)
+colnames(m)<-c(1:21)
+
+
+#time<-proc.time()
+res<-tabuTSP(size=21,iters=50,objFunc=evaluate,listSize=15,nRestarts=10,repeatAll=1,dist=m)
 summ(res, verbose=T) #Worked for 125 towns, took approx 90 minutes
-proc.time()-time
+#proc.time()-time
 
 plot(Ps,col="black",pch=16)
 adjXs<-c(Xs,Xs[1])

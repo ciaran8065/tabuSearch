@@ -1,13 +1,13 @@
-getGreedy<-function(size,d){
+getGreedy<-function(size,d,start){
   diag(d)<-diag(d)+.Machine$integer.max
   v<-numeric(size)
-  track<-1
+  track<-start
   exc<-numeric(size)
-  exc[1]<-1
+  exc[1]<-start
   for(i in 1:size){
     exc<-c(track,exc)
     if(i==size){
-      v[track]<-1
+      v[track]<-start
     }else{
       if(length(d[track,-exc])==1){ #it was being forced to a vector when there was length 1 and it was causing issues with "names()"
         #cat("track: ",track,"\n")
@@ -56,7 +56,31 @@ Ys<-sample(1:100,20)
 Ps<-cbind(Xs,Ys)
 d<-as.matrix(dist(Ps))
 
-vec<-getGreedy(20,d)
+vec<-getGreedy(20,d,10)
 valids[i]<-valid(vec)
 }
 valids
+
+evaluate<-function(v,d){
+  pathLength<-0
+  for(i in 1:length(v)){
+    pathLength<-pathLength+(d[i,which(v==i)]) 
+  }
+  return(-1*pathLength)
+}
+
+
+Xs<-sample(1:100,100)
+Ys<-sample(1:100,100)
+Ps<-cbind(Xs,Ys)
+d<-as.matrix(dist(Ps))
+
+values<-numeric(100)
+confs<-matrix(0,100,100)
+for(i in 1:100){
+  vec<-getGreedy(100,d,i)
+  values[i]<-evaluate(vec,d)
+  confs[i,]<-vec
+}
+values[which.max(values)]
+confs[which.max(values),]

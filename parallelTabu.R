@@ -374,13 +374,17 @@ summ<-function (object, verbose = FALSE, ...)
 }
 
 
-Xs<-sample(1:100,30,replace=T) 
-Ys<-sample(1:100,30,replace=T) 
+Xs<-sample(1:100,21,replace=T) 
+Ys<-sample(1:100,21,replace=T) 
 Ps<-cbind(Xs,Ys) 
 d<-as.matrix(dist(Ps))
 
+m<-as.matrix(eurodist)
+rownames(m)<-c(1:21)
+colnames(m)<-c(1:21)
+
 time<-proc.time()
-res<-tabuTSP(size=30,iters=10,objFunc=evaluate,listSize=20,nRestarts=10,repeatAll=1,dist=d)
+res<-tabuTSP(size=21,iters=10,objFunc=evaluate,listSize=15,nRestarts=10,repeatAll=1,d=m)
 summ(res, verbose=T) #Worked for 125 towns, took approx 90 minutes
 proc.time()-time
 
@@ -404,3 +408,6 @@ newPs<-function(Ps,resM){
   lines(Xs,Ys)
 }
 newPs(Ps,resM)
+
+d
+m

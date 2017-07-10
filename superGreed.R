@@ -39,6 +39,9 @@ tabuTSP<-function(size = 10, iters = 100, objFunc = NULL, config = NULL,
   if (repeatAll < 1) {
     stop("error: repeatAll must be > 0")
   }
+  if(size!=length(d[1,])){
+    stop("Size and dimensions of distance matrix do not match")
+  }
   iter <- 1 
   configKeep <- matrix(0, repeatAll * iters * (nRestarts + 3), size) 
   eUtilityKeep <- vector(, repeatAll * iters * (nRestarts + 3)) 
@@ -386,7 +389,7 @@ colnames(m)<-c(1:21)
 
 
 #time<-proc.time()
-res<-tabuTSP(size=21,iters=50,objFunc=evaluate,listSize=15,nRestarts=10,repeatAll=1,dist=m)
+res<-tabuTSP(size=30,iters=50,objFunc=evaluate,listSize=20,nRestarts=10,repeatAll=1,dist=d)
 summ(res, verbose=T) #Worked for 125 towns, took approx 90 minutes
 #proc.time()-time
 

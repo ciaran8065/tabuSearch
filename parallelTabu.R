@@ -51,13 +51,13 @@ tabuTSP<-function(size = 10, iters = 100, objFunc = NULL, config = NULL,
         neighboursEUtility <- matrix(0, 1, size^2) 
         configTemp <- t(matrix(config, size, neigh)) 
         Neighbours <- c(1:(size^2))
-        #print(configTemp)
+        
         if(size>=60){
           configTemp<-findConfP(config)
         }else{
-          configTemp<-findConf(config)
+          configTemp<-findConf(config,size)
         }
-        #print(configTemp)
+        
         neighboursEUtility[Neighbours] <- apply(configTemp, 1,objFunc,d=dist)
         
         maxNontaboo <- max(neighboursEUtility[tabuList == 0]) 
@@ -164,15 +164,16 @@ evaluate<-function(v,d){
   return(-1*pathLength)
 }
 
-findConf<-function(v){ #non-parallel neighbour finding
-  m<-matrix(v,1,length(v))
-  
+findConf<-function(v,size){ #non-parallel neighbour finding
+  m<-matrix(v,size^2,length(v))#just set to initial size
+  track<-1
   for(i in 1:length(v)){
     for(j in 1:length(v)){
-      m<-rbind(m,swap(v,i,j))
+      m[track,]<-swap(v,i,j)
+      track<-track+1
     }
   }
-  return(m[2:nrow(m),])
+  return(m)
 }
 findConfP<-function(v){ #parallel neighbour finding
   if(!"foreach" %in% rownames(installed.packages())){
@@ -316,12 +317,6 @@ getGreedy<-function(size,d){
       v[track]<-1
     }else{
       if(length(d[track,-exc])==1){ #it was being forced to a vector when there was length 1 and it was causing issues with "names()"
-        #cat("track: ",track,"\n")
-        #cat("d[track,-exc]",d[track,-exc],"\n")
-        #cat("exc: ",exc,"\n")
-        #cat("length: ",length(d[track,-exc])==1,"\n")
-        #cat("which: ",which(d[track,]==d[track,-exc]),"\n")
-        #v[track]<-which(d[track,]==d[track,-exc])
         vect2<-which(d[track,]==d[track,-exc]) #PROBLEM this can produce more than 1 number when there is 2 numbers exactly the same in the same row
         pos<-setdiff(vect2,exc) #This takes the differene between the 2 vectors i.e removes the excluded towns from vect2 (if an excluded town has exactly the same distance it can be included)
         v[track]<-pos
@@ -329,7 +324,6 @@ getGreedy<-function(size,d){
         v[track]<-as.integer(names(which.min(d[track,-exc])))
       }
       track<-v[track]
-      #cat("V:",v,"\n")
     }
   }
   return(v)
@@ -384,7 +378,7 @@ rownames(m)<-c(1:21)
 colnames(m)<-c(1:21)
 
 time<-proc.time()
-res<-tabuTSP(size=21,iters=10,objFunc=evaluate,listSize=15,nRestarts=10,repeatAll=1,d=m)
+res<-tabuTSP(size=21,iters=10,objFunc=evaluate,listSize=15,nRestarts=10,repeatAll=1,d=d)
 summ(res, verbose=T) #Worked for 125 towns, took approx 90 minutes
 proc.time()-time
 
@@ -408,6 +402,3 @@ newPs<-function(Ps,resM){
   lines(Xs,Ys)
 }
 newPs(Ps,resM)
-
-d
-m

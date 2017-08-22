@@ -1,6 +1,6 @@
 library(R6)
 
-tabuObj<-R6Class("tabuObj",
+tabuSearch<-R6Class("tabuSearch",
                  public=list(
                    size=NULL,
                    iters=NULL,
@@ -36,31 +36,68 @@ tabuObj<-R6Class("tabuObj",
                      nRestarts<-obj$nRestarts
                      repeatAll<-obj$repeatAll
                      verbose<-obj$verbose
-                     if (size < 2) { #1 variable isn't enough, need something to compare to.
-                       stop("error: config too short!")
+                     is.binary <- function(x){all(x %in% 0:1)}
+                     if (is.null(size)){
+                       if (is.null(config)){
+                         stop("error: must supply either initial configuration or its length")
+                       } else {
+                         if(!is.binary(config)){
+                           stop("error: config should be binary")  
+                         }
+                         size <- length(config)
+                       }
+                     } else {
+                       if (size < 2){
+                         stop("error: config too short!")
+                       }
+                       if (is.null(config)) {
+                         config <- sample(0:1, size, replace = TRUE)  # a random binary configuration 
+                       } else {
+                         if (size != length(config)){
+                           stop("error: length of the starting configuration != size")
+                         }
+                         if(!is.binary(config)){
+                           stop("error: config should be binary")  
+                         }
+                       }
                      }
-                     if (iters < 2) { #more iterations more likely to find good answer.
+                     if (iters < 2){
                        stop("error: not enough iterations!")
                      }
-                     if (listSize >= size) { #You can't have a tabuList with size > the number of possible moves.
-                       stop("error: listSize too big!")
+                     if (is.null(objFunc)) {
+                       stop("error: an evaluation function must be provided. See the objFunc parameter.")
+                     } else{    
+                       if (!is.function(objFunc)) {
+                         stop("error: objFunc is not a valid function.")
+                       }
                      }
-                     if (neigh > size) { #can't check more neighbours than there are
+                     
+                     if (neigh > size){
                        stop("error: too many neighbours!")
+                     } else{
+                       if (neigh < 2){
+                         stop("error: too few neighbours!")
+                       }
                      }
-                     if (is.null(objFunc)) { #The algorithm requires a user defined objective function
-                       stop("A evaluation function must be provided. See the objFunc parameter.")
+                     if (is.null(listSize)){
+                       listSize <- size - 1
+                     } else {
+                       if (listSize >= size){
+                         stop("error: listSize too big!")
+                       } else {
+                         if(listSize < 1){
+                           stop("error: listSize too small!")
+                         }
+                       }
+                     } 
+                     if (nRestarts < 0){
+                       stop("error: nRestarts must be >= 0")
                      }
-                     if (is.null(config)) { #if no config create a default.
-                       config <- matrix(0, 1, size) #a matrix of 1 row with "size" columns filled with 0's
-                       config[sample(1:size, sample(1:size, 1))] <- 1 #a random number of positions from 1:size are set to 1
-                       
+                     if (repeatAll < 0){
+                       stop("error: repeatAll must be >= 0")
                      }
-                     else if (size != length(config)) {
-                       stop("Length of the starting configuration != size")
-                     }
-                     if (repeatAll < 1) {
-                       stop("error: repeatAll must be > 0")
+                     if (!is.logical(verbose)){
+                       warning("warning: verbose should be logical")
                      }
                      iter <- 1 #not to be confused with "iters", iter is used to track the next row/position in the matrices/vectors at which we insert data.
                      configKeep <- matrix(, repeatAll * iters * (nRestarts + 3), size) #An empty matrix with rows specified and "size" columns to hold the configuration of binary string at each stage
@@ -221,39 +258,70 @@ tabuObj<-R6Class("tabuObj",
                      nRestarts<-obj$nRestarts
                      repeatAll<-obj$repeatAll
                      verbose<-obj$verbose
-                     
-                     if (size < 2) { #1 variable isn't enough, need something to compare to.
-                       stop("error: config too short!")
+                     is.binary <- function(x){all(x %in% 0:1)}
+                     if (is.null(size)){
+                       if (is.null(config)){
+                         stop("error: must supply either initial configuration or its length")
+                       } else {
+                         if(!is.binary(config)){
+                           stop("error: config should be binary")  
+                         }
+                         size <- length(config)
+                       }
+                     } else {
+                       if (size < 2){
+                         stop("error: config too short!")
+                       }
+                       if (is.null(config)) {
+                         config <- sample(0:1, size, replace = TRUE)  # a random binary configuration 
+                       } else {
+                         if (size != length(config)){
+                           stop("error: length of the starting configuration != size")
+                         }
+                         if(!is.binary(config)){
+                           stop("error: config should be binary")  
+                         }
+                       }
                      }
-                     if (iters < 2) { #more iterations more likely to find good answer.
+                     if (iters < 2){
                        stop("error: not enough iterations!")
                      }
-                     if (listSize >= size) { #You can't have a tabuList with size > the number of possible moves.
-                       stop("error: listSize too big!")
-                     }
-                     if (neigh > size) { #can't check more neighbours than there are
-                       stop("error: too many neighbours!")
-                     }
-                     if (is.null(objFunc)) { #The algorithm requires a user defined objective function
-                       stop("A evaluation function must be provided. See the objFunc parameter.")
-                     }
-                     if (is.null(config)) { #if no config create a default.
-                       values<-numeric(size)
-                       allConfigs <- matrix(0, size, size) #a matrix of 1 row with "size" columns filled with 0's
-                       for(i in 1:(size)){
-                         temp_config<-numeric(size)
-                         temp_config[sample(1:size, sample(1:size, 1))] <- 1
-                         allConfigs[i,]<-temp_config
-                         value<-objFunc(temp_config)
-                         values[i]<-value
+                     if (is.null(objFunc)) {
+                       stop("error: an evaluation function must be provided. See the objFunc parameter.")
+                     } else{    
+                       if (!is.function(objFunc)) {
+                         stop("error: objFunc is not a valid function.")
                        }
-                       config<-allConfigs[which.max(values),]
-                     }else if (size != length(config)) {
-                       stop("Length of the starting configuration != size")
                      }
-                     if (repeatAll < 1) {
-                       stop("error: repeatAll must be > 0")
+                     
+                     if (neigh > size){
+                       stop("error: too many neighbours!")
+                     } else{
+                       if (neigh < 2){
+                         stop("error: too few neighbours!")
+                       }
                      }
+                     if (is.null(listSize)){
+                       listSize <- size - 1
+                     } else {
+                       if (listSize >= size){
+                         stop("error: listSize too big!")
+                       } else {
+                         if(listSize < 1){
+                           stop("error: listSize too small!")
+                         }
+                       }
+                     } 
+                     if (nRestarts < 0){
+                       stop("error: nRestarts must be >= 0")
+                     }
+                     if (repeatAll < 0){
+                       stop("error: repeatAll must be >= 0")
+                     }
+                     if (!is.logical(verbose)){
+                       warning("warning: verbose should be logical")
+                     }
+                     
                      iter <- 1 #not to be confused with "iters", iter is used to track the next row/position in the matrices/vectors at which we insert data.
                      configKeep <- matrix(, repeatAll * iters * (nRestarts + 3), size) #An empty matrix with rows specified and "size" columns to hold the configuration of binary string at each stage
                      eUtilityKeep <- vector(, repeatAll * iters * (nRestarts + 3)) #vector of undetermined type, to hold the values of objective function at each itteration
@@ -416,68 +484,96 @@ tabuObj<-R6Class("tabuObj",
                      nRestarts<-obj$nRestarts
                      repeatAll<-obj$repeatAll
                      verbose<-obj$verbose
-                     
-                     if (size < 2) { #1 variable isn't enough, need something to compare to.
-                       stop("error: config too short!")
+                     is.binary <- function(x){all(x %in% 0:1)}
+                     if (is.null(size)){
+                       if (is.null(config)){
+                         stop("error: must supply either initial configuration or its length")
+                       } else {
+                         if(!is.binary(config)){
+                           stop("error: config should be binary")  
+                         }
+                         size <- length(config)
+                       }
+                     } else {
+                       if (size < 2){
+                         stop("error: config too short!")
+                       }
+                       if(is.null(limit)){
+                         stop("A maximum weight must be provided")
+                       }
+                       if(length(values)!=length(weights)){
+                         stop("Weights and Value vectors must be of equal length")
+                       }
+                       if(length(values)!=size){
+                         stop("Size must equal the number of values")
+                       }
+                       if(length(weights)!=size){
+                         stop("Size must equal the number of weights")
+                       }
+                       if (is.null(config)) { #if no config create a default.
+                         greedy<-function(size,w,v,limit){
+                           vals<-v
+                           ws<-w
+                           rs<-vals/ws
+                           ind<-sort.int(rs,decreasing=T,index.return=T)$ix
+                           reOrderedWeights<-(ws[ind])
+                           curW<-0
+                           Wm<-limit
+                           conf<-numeric(size)
+                           track<-1
+                           while(track<=size){
+                             if(curW+reOrderedWeights[track]>Wm){
+                               break
+                             }else{
+                               curW<-curW+reOrderedWeights[track]
+                               conf[ind[track]]<-1
+                               track<-track+1
+                             }
+                           }
+                           return(conf)
+                         }
+                         config<-greedy(size,weights,values,limit)
+                       }else if (size != length(config)) {
+                         stop("Length of the starting configuration != size")
+                       }
                      }
-                     if (iters < 2) { #more iterations more likely to find good answer.
+                     if (iters < 2){
                        stop("error: not enough iterations!")
                      }
-                     if (listSize >= size) { #You can't have a tabuList with size > the number of possible moves.
-                       stop("error: listSize too big!")
-                     }
-                     if (neigh > size) { #can't check more neighbours than there are
-                       stop("error: too many neighbours!")
-                     }
-                     if (is.null(objFunc)) { #The algorithm requires a user defined objective function
-                       stop("A evaluation function must be provided. See the objFunc parameter.")
-                     }
-                     if(is.null(weights)){
-                       stop("A vector of weights must be provided")
-                     }
-                     if(is.null(values)){
-                       stop("A vector of values must be provided")
-                     }
-                     if(is.null(limit)){
-                       stop("A maximum weight must be provided")
-                     }
-                     if(length(values)!=length(weights)){
-                       stop("Weights and Value vectors must be of equal length")
-                     }
-                     if(length(values)!=size){
-                       stop("Size must equal the number of values")
-                     }
-                     if(length(weights)!=size){
-                       stop("Size must equal the number of weights")
-                     }
-                     if (is.null(config)) { #if no config create a default.
-                       greedy<-function(size,w,v,limit){
-                         vals<-v
-                         ws<-w
-                         rs<-vals/ws
-                         ind<-sort.int(rs,decreasing=T,index.return=T)$ix
-                         reOrderedWeights<-(ws[ind])
-                         curW<-0
-                         Wm<-limit
-                         conf<-numeric(size)
-                         track<-1
-                         while(track<=size){
-                           if(curW+reOrderedWeights[track]>Wm){
-                             break
-                           }else{
-                             curW<-curW+reOrderedWeights[track]
-                             conf[ind[track]]<-1
-                             track<-track+1
-                           }
-                         }
-                         return(conf)
+                     if (is.null(objFunc)) {
+                       stop("error: an evaluation function must be provided. See the objFunc parameter.")
+                     } else{    
+                       if (!is.function(objFunc)) {
+                         stop("error: objFunc is not a valid function.")
                        }
-                       config<-greedy(size,weights,values,limit)
-                     }else if (size != length(config)) {
-                       stop("Length of the starting configuration != size")
                      }
-                     if (repeatAll < 1) {
-                       stop("error: repeatAll must be > 0")
+                     
+                     if (neigh > size){
+                       stop("error: too many neighbours!")
+                     } else{
+                       if (neigh < 2){
+                         stop("error: too few neighbours!")
+                       }
+                     }
+                     if (is.null(listSize)){
+                       listSize <- size - 1
+                     } else {
+                       if (listSize >= size){
+                         stop("error: listSize too big!")
+                       } else {
+                         if(listSize < 1){
+                           stop("error: listSize too small!")
+                         }
+                       }
+                     } 
+                     if (nRestarts < 0){
+                       stop("error: nRestarts must be >= 0")
+                     }
+                     if (repeatAll < 0){
+                       stop("error: repeatAll must be >= 0")
+                     }
+                     if (!is.logical(verbose)){
+                       warning("warning: verbose should be logical")
                      }
                      iter <- 1 #not to be confused with "iters", iter is used to track the next row/position in the matrices/vectors at which we insert data.
                      configKeep <- matrix(, repeatAll * iters * (nRestarts + 3), size) #An empty matrix with rows specified and "size" columns to hold the configuration of binary string at each stage
@@ -834,6 +930,9 @@ tabuObj<-R6Class("tabuObj",
                        if(is.null(dist)){
                          stop("error: must provide a distance matrix")
                        }
+                       if(size!=length(dist[1,])){
+                         stop("error: size must be equal to the number of variables")
+                       }
                        if (iters < 2) { 
                          stop("error: not enough iterations!")
                        }
@@ -855,6 +954,7 @@ tabuObj<-R6Class("tabuObj",
                        if (repeatAll < 1) {
                          stop("error: repeatAll must be > 0")
                        }
+                       
                        iter <- 1 
                        configKeep <- matrix(0, repeatAll * iters * (nRestarts + 3), size) 
                        eUtilityKeep <- vector(, repeatAll * iters * (nRestarts + 3)) 
@@ -1026,6 +1126,7 @@ tabuObj<-R6Class("tabuObj",
                    }
                    
                    
+                   
                  )
 )
 
@@ -1087,7 +1188,10 @@ ktabu$KnapSumm(kres,evaluate3)
 Xs<-sample(1:100,21,replace=T) 
 Ys<-sample(1:100,21,replace=T) 
 Ps<-cbind(Xs,Ys) 
-d<-as.matrix(dist(Ps))
+d<-as.matrix(eurodist)
+
+row.names(d)<-c(1:21)
+colnames(d)<-c(1:21)
 
 evaluate4<-function(v,d){
   pathLength<-0
@@ -1100,3 +1204,6 @@ evaluate4<-function(v,d){
 tsptabu<-tabuObj$new(size=21,iters=10,objFunc=evaluate4,listSize=15,nRestarts=10,repeatAll=1)
 tspres<-tsptabu$tabuSearchTSP(tsptabu,d)
 tsptabu$TSPSumm(tspres,T)
+
+###################
+

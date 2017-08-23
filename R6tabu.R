@@ -1,6 +1,6 @@
 library(R6)
 
-tabuSearch<-R6Class("tabuSearch",
+tabuObj<-R6Class("tabuObj",
                  public=list(
                    size=NULL,
                    iters=NULL,
